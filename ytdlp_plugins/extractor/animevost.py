@@ -90,7 +90,8 @@ class AnimeVostShowsIE(InfoExtractor):
 
             episode_player_url = _BASE_URL + _SHOWS_API_URL + episode_id
 
-            episode_num = re.match(r'\d+', episode)[0]
+            episode_match = re.match(r'\d+', episode)
+            episode_num = episode_match[0] if episode_match else None
 
             episode_title = f"{title} {episode}"
             if season:
@@ -103,11 +104,11 @@ class AnimeVostShowsIE(InfoExtractor):
                 'url': episode_player_url,
                 'ie': AnimeVostIE.ie_key(),
                 'ext': 'mp4',
-                'display_id': video_id + '-' + episode_num,
+                'display_id': video_id + '-' + episode,
                 'series': title,
                 'season': season,
                 'season_number': season_number,
-                'episode_number': int(episode_num)
+                'episode_number': int(episode_num) if episode_num else None
             })
 
         res = {
