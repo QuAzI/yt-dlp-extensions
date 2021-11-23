@@ -94,9 +94,10 @@ class AnimeVostShowsIE(InfoExtractor):
             episode_match = re.match(r'\d+', episode_name)
             episode_num = episode_match[0] if episode_match else None
 
-            episode_title = f"{title} {episode_name}"
+            series = title
             if season:
-                episode_title = f"{title} [{season}] {episode_name}"
+                series = f"{title} [{season}]"
+            episode_title = f"{series} {episode_name}"
 
             entries.append({
                 'id': episode_id,
@@ -106,7 +107,7 @@ class AnimeVostShowsIE(InfoExtractor):
                 'ie': AnimeVostIE.ie_key(),
                 'ext': 'mp4',
                 'display_id': video_id + '-' + episode_name,
-                'series': title,
+                'series': series,
                 'season': season,
                 'season_number': season_number,
                 'episode_number': int(episode_num) if episode_num else None
