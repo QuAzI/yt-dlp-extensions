@@ -1,22 +1,35 @@
-@if "%2"=="" goto :all
+@if "%1"=="--batch-file" goto :list-custom
 
-yt-dlp %1 --no-check-certificates --download-archive c:\bin\animevost-downloaded.list --playlist-start %2
+@if "%1"=="" goto :list
+
+@if "%2"=="" goto :source
+
+
+:source-from-num
+
+yt-dlp %1 --playlist-start %2 -o "%%(series)s\\%%(title)s [%%(id)s].%%(ext)s" --download-archive animevost-downloaded.list --no-check-certificates
 
 @goto :done
 
 
-:all
+:source
 
-@if "%1"=="" goto :list
 
-yt-dlp %1 --no-check-certificates --download-archive c:\bin\animevost-downloaded.list
+yt-dlp %1 -o "%%(series)s\\%%(title)s [%%(id)s].%%(ext)s" --download-archive animevost-downloaded.list --no-check-certificates
+
+@goto :done
+
+
+:list-custom
+
+yt-dlp -o "%%(series)s\\%%(title)s [%%(id)s].%%(ext)s" --batch-file %2 --download-archive animevost-downloaded.list -I -24: --no-check-certificates
 
 @goto :done
 
 
 :list
 
-yt-dlp --batch-file c:\bin\animevost-batch.list --no-check-certificates --download-archive c:\bin\animevost-downloaded.list -o "%%(series)s\\%%(title)s [%%(id)s].%%(ext)s"
-@rem default template: %(title)s [%(id)s].%(ext)s
+yt-dlp -o "%%(series)s\\%%(title)s [%%(id)s].%%(ext)s" --batch-file animevost-batch.list --download-archive animevost-downloaded.list -I -24: --no-check-certificates
+
 
 :done

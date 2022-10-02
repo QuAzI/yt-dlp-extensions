@@ -4,9 +4,14 @@ from yt_dlp.extractor.common import InfoExtractor
 import json
 import re
 
+from yt_dlp.utils import (
+    int_or_none,
+    parse_duration,
+)
 
 class AnimeVostShowsIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?animevost\.(org|am)/tip/.*/(?P<id>\d+)[-\w+][^/]*'
+    # _VALID_URL = r'https?://(?:www\.)?animevost\.(org|am)/tip/.*/(?P<id>\d+)[-\w+][^/]*'
+    _VALID_URL = r'https?://(?:www\.)?(animevost\.org|animevost\.am|v2\.vost\.pw)/tip/.*/(?P<id>\d+)[-\w+][^/]*'
 
     _TESTS = [
         {
@@ -66,6 +71,10 @@ class AnimeVostShowsIE(InfoExtractor):
         title = title[:title.find('/')]  # beautify
         title = title.strip()
 
+        release_year = self._html_search_regex(r'<p><strong>Год выхода: </strong>(\d+?)</p>', webpage, 'release_year', fatal=False)
+        # (playlist_count, duration) = self._html_search_regex(r'<p><strong>Количество серий: </strong>(\d+?) \((\d+?) мин.\)</p>', webpage, 'playlist_count', fatal=False)
+        playlist_count = 0
+
         season = None
         season_number = 0
 
@@ -97,6 +106,11 @@ class AnimeVostShowsIE(InfoExtractor):
             series = title
             if season:
                 series = f"{title} [{season}]"
+
+            series_full = series
+            if release_year:
+                series_full = f"{series} ({release_year})"
+
             episode_title = f"{series} {episode_name}"
 
             entries.append({
@@ -107,12 +121,14 @@ class AnimeVostShowsIE(InfoExtractor):
                 'ie': AnimeVostIE.ie_key(),
                 'ext': 'mp4',
                 'display_id': video_id + '-' + episode_name,
-                'series': series,
+                'series': series_full,
                 'season': season,
                 'season_number': season_number,
-                'episode_number': int(episode_num) if episode_num else None
+                'episode_number': int_or_none(episode_num), # int(episode_num) if episode_num else None,
+                'release_year': int_or_none(release_year) # int(release_year) if release_year else None
             })
 
+        playlist_count = max(len(entries), int_or_none(playlist_count))
         res = {
             'id': video_id,
             'title': title,
@@ -120,7 +136,7 @@ class AnimeVostShowsIE(InfoExtractor):
             'description': description,
             'url': url,
             'entries': entries,
-            'playlist_count': len(entries),
+            'playlist_count': playlist_count,
             '_type': 'playlist',
         }
         return res
