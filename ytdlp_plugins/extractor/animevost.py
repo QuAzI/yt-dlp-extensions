@@ -88,6 +88,11 @@ class AnimeVostShowsIE(InfoExtractor):
         #     ['og:description', 'description', 'twitter:description'],
         #     webpage, 'description', default=None)
 
+        if len(title) > 90:
+            print('Title too long and would be trimmed: ', title)
+            title = title[:90]
+            title = title[:title.rfind(' ')]
+        
         description = title
 
         episodes_json = self._search_regex(r'var data = \s*?(.*?);', webpage, 'data')
