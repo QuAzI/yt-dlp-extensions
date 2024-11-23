@@ -6,7 +6,7 @@ import re
 
 from yt_dlp.utils import (
     int_or_none,
-    parse_duration,
+    qualities,
 )
 
 class AnimeVostShowsIE(InfoExtractor):
@@ -56,6 +56,8 @@ class AnimeVostShowsIE(InfoExtractor):
         if season.__contains__('пятый'): return 5
         if season.__contains__('шестой'): return 6
         if season.__contains__('седьмой'): return 7
+        if season.__contains__('восьмой'): return 8
+        if season.__contains__('девятый'): return 9
         return 0
 
     def _real_extract(self, url):
@@ -164,17 +166,50 @@ class AnimeVostIE(InfoExtractor):
     ]
 
     def _real_extract(self, url):
-        episode_id = self._match_id(url)
+        video_id = self._match_id(url)
+
+        webpage = self._download_webpage(
+            url,
+            None, 'Episode id %s' % video_id)
+
+        formats = []
+        quality = qualities(['sd', 'hd'])
+        episode_url_480p = self._search_regex(r'href="?(.*?)">480p', webpage, 'data')
+        formats.append({
+                    'url': episode_url_480p,
+                    # 'quality': 'sd',
+                    'quality': quality('sd'),
+                    'ext': 'mp4',
+                    'height': 480,
+                })
+        episode_url_720p = self._search_regex(r'href="?(.*?)">720p', webpage, 'data')
+        formats.append({
+                    'url': episode_url_720p,
+                    # 'quality': 'hd',
+                    'quality': quality('hd'),
+                    'ext': 'mp4',
+                    'height': 720,
+                })
+
+        print('formats:', formats)
         return {
-            'id': episode_id,
-            'url': self.get_cdn_url(url, episode_id),
+            'id': video_id,
+            'formats': formats,
+            # 'title': metadata.get('podcast_name'),
+            # 'series': metadata.get('series_name'),
+            # 'episode': metadata.get('podcast_name'),
         }
 
-    def get_cdn_url(self, target_url, episode_id):
-        response = self._download_webpage(
-            target_url,
-            None, 'Episode id %s' % episode_id)
+        # return {
+        #     'id': episode_id,
+        #     'url': self.get_cdn_url(url, episode_id),
+        # }
 
-        episode_url = self._search_regex(r'href="?(.*?)">480p', response, 'data')
+    # def get_cdn_url(self, target_url, episode_id):
+    #     response = self._download_webpage(
+    #         target_url,
+    #         None, 'Episode id %s' % episode_id)
 
-        return episode_url
+    #     episode_url = self._search_regex(r'href="?(.*?)">480p', response, 'data')
+
+    #     return episode_url
