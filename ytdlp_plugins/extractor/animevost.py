@@ -3,6 +3,7 @@
 from yt_dlp.extractor.common import InfoExtractor
 import json
 import re
+from urllib.parse import urlparse
 
 from yt_dlp.utils import (
     int_or_none,
@@ -11,7 +12,7 @@ from yt_dlp.utils import (
 
 class AnimeVostShowsIE(InfoExtractor):
     # _VALID_URL = r'https?://(?:www\.)?animevost\.(org|am)/tip/.*/(?P<id>\d+)[-\w+][^/]*'
-    _VALID_URL = r'https?://(?:www\.)?(animevost\.org|animevost\.am|v2\.vost\.pw)/tip/.*/(?P<id>\d+)[-\w+][^/]*'
+    _VALID_URL = r'https?://(?:www\.)?(animevost\.org|animevost\.am|v\d+\.vost\.pw)/tip/.*/(?P<id>\d+)[-\w+][^/]*'
 
     _TESTS = [
         {
@@ -61,7 +62,10 @@ class AnimeVostShowsIE(InfoExtractor):
         return 0
 
     def _real_extract(self, url):
-        _BASE_URL = 'https://animevost.org'
+        #_BASE_URL = 'https://animevost.org'
+        parsed_url = urlparse(url)
+        _BASE_URL = f"{parsed_url.scheme}://{parsed_url.netloc}"
+        
         _SHOWS_API_URL = '/frame5.php?play='
 
         video_id = self._match_id(url)
@@ -153,7 +157,8 @@ class AnimeVostIE(InfoExtractor):
     IE_NAME = 'animevost:cdn'
     IE_DESC = 'animevost.org CDN'
 
-    _VALID_URL = r'https?://(?:www\.)?animevost\.(org|am)/frame5.php\?play=(?P<id>\d+).*'
+    # _VALID_URL = r'https?://(?:www\.)?animevost\.(org|am)/frame5.php\?play=(?P<id>\d+).*'
+    _VALID_URL = r'https?://(?:www\.)?(animevost\.org|animevost\.am|v\d+\.vost\.pw)/frame5.php\?play=(?P<id>\d+).*'
 
     _TESTS = [
         {
