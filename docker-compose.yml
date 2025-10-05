@@ -3,7 +3,15 @@ services:
     container_name: yt-dlp-animevost
     build: yt-dlp
     volumes:
-      - ./downloads:/downloads
+      - downloads:/downloads
       - ./download.list:/app/download.list
       - ./history.list:/app/history.list
     command: "/usr/local/bin/yt-dlp --batch-file download.list -I -24: --download-archive history.list"
+
+volumes:
+  downloads:
+    driver: local # Define the driver and options under the volume name
+    driver_opts:
+      type: none
+      device: /media/media/anime/
+      o: bind

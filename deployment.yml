@@ -1,0 +1,31 @@
+#!/usr/bin/env ansible-playbook
+- name: animevost-downloader Configuration
+  hosts: home.local
+  vars:
+    dest: ~/server/animevost-downloader/
+  tasks:
+    - name: Require Docker
+      apt:
+        name:
+          - docker-ce
+        state: present
+
+    - name: Copy settings
+      copy: src={{ item }} dest={{ dest }}/{{ item }}
+      with_items:
+        - docker-compose.yml
+        - yt-dlp/
+      notify: Rebuild animevost-downloader
+
+    - name: Schedule
+      ansible.builtin.cron:
+        name: "Download new series from Animevost"
+        minute: "42"
+        hour: "6,13,18,20,22"
+        job: "cd ~/server/animevost-downloader && docker-compose up"
+
+  handlers:
+    - name: Rebuild animevost-downloader
+      ansible.builtin.command: docker compose build
+      args:
+        chdir: "{{ dest }}"
