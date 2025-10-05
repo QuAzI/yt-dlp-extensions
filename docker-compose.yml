@@ -1,0 +1,9 @@
+services:
+  yt-dlp-animevost:
+    container_name: yt-dlp-animevost
+    build: yt-dlp
+    volumes:
+      - ./downloads:/downloads
+      - ./download.list:/app/download.list
+      - ./history.list:/app/history.list
+    command: "/usr/local/bin/yt-dlp --batch-file download.list -I -24: --download-archive history.list"
