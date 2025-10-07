@@ -21,8 +21,8 @@
       ansible.builtin.cron:
         name: "Download new series from Animevost"
         minute: "42"
-        hour: "6,13,18,20,22"
-        job: "cd ~/server/animevost-downloader && docker-compose up"
+        hour: "18,20,22"
+        job: "cd ~/server/animevost-downloader && docker compose up  >> ~/animevost-downloader.log 2>&1"
 
   handlers:
     - name: Rebuild animevost-downloader
