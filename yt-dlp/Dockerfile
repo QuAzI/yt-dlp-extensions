@@ -8,4 +8,4 @@ WORKDIR /app
 COPY ./yt-dlp.conf ./
 COPY ./ytdlp_plugins /etc/yt-dlp/plugins
 
-CMD ["/usr/local/bin/yt-dlp"]
+ENTRYPOINT ["/usr/local/bin/yt-dlp"]

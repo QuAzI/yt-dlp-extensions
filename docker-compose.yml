@@ -1,9 +1,9 @@
 services:
-  yt-dlp-animevost:
-    container_name: yt-dlp-animevost
+  downloader:
+    container_name: downloader
     build: yt-dlp
     volumes:
       - /media/media/anime:/downloads
       - ./download.list:/app/download.list
       - ./history.list:/app/history.list
-    command: "/usr/local/bin/yt-dlp --batch-file download.list -I -24: --download-archive history.list"
+    command: "--batch-file download.list -I -24:"
