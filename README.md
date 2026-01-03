@@ -1,15 +1,145 @@
-Плагин для скачивания с animevost.org и Docker Compose
+# yt-dlp-extensions
 
-Обязательно создайте
-- download.list - список для скачивания (просто список url)
-- history.list - история id уже скачанных серий. Хотя бы пустой файл обязателен, иначе Docker Compose создаст директорию
+Плагин для yt-dlp, позволяющий скачивать аниме с сайта [animevost.org](https://animevost.org) и его зеркал (animevost.am, vost.pw).
 
-Для запуска по расписанию `crontab -e`
+## Описание
 
-```crontab
-42 6,13,18,20,22 * * *  cd ~/server/animevost-downloader && docker-compose up
+Проект включает:
+- **Плагин для yt-dlp** - кастомный экстрактор для animevost.org
+- **Docker-контейнер** - автоматизированное скачивание через Docker Compose
+- **Скрипты для ручного использования** - для Windows и Linux
+
+Плагин поддерживает:
+- Скачивание целых сериалов (плейлистов) по URL страницы аниме
+- Скачивание отдельных эпизодов
+- Автоматическое определение сезонов
+- Поддержка качества 480p и 720p
+- Сохранение метаданных (название сериала, номер эпизода, год выпуска)
+
+## Структура проекта
+
+```
+yt-dlp-extensions/
+├── yt-dlp/                          # Docker-контейнер и конфигурация
+│   ├── Dockerfile                   # Образ с yt-dlp и плагином
+│   ├── yt-dlp.conf                  # Конфигурация yt-dlp
+│   └── ytdlp_plugins/               # Плагины
+│       └── animevost/
+│           └── yt_dlp_plugins/
+│               └── extractor/
+│                   ├── __init__.py
+│                   └── animevost.py # Основной код плагина
+├── docker-compose.yml               # Docker Compose конфигурация
+├── deployment.yml                   # Ansible playbook для развертывания
+├── download.cmd                     # Скрипт для ручного скачивания (Windows)
+└── README.md
 ```
 
-Для ручного скачивания нужно скопировать `ytdlp_plugins\animevost\yt_dlp_plugins\extractor`
-в `ytdlp_plugins` которая должна быть размещена рядом с yt-dlp
-Например, для `c:\bin\yt-dlp.exe` создать `c:\bin\ytdlp_plugins` и скопировать `extractor` внутрь
+## Установка и использование
+
+### Вариант 1: Docker Compose (рекомендуется)
+
+1. **Создайте необходимые файлы:**
+   ```bash
+   # Список URL для скачивания (по одному URL на строку)
+   touch download.list
+   
+   # История скачанных эпизодов (может быть пустым, но файл обязателен)
+   touch history.list
+   ```
+
+2. **Добавьте URL в `download.list`:**
+   ```
+   https://animevost.org/tip/tv/179-one-piece44.html
+   https://animevost.org/tip/tv/385-blazblue-alter-memory.html
+   ```
+
+3. **Настройте путь для скачивания в `docker-compose.yml`:**
+   ```yaml
+   volumes:
+     - /путь/к/папке/скачивания:/downloads
+   ```
+
+4. **Запустите скачивание:**
+   ```bash
+   docker-compose up
+   ```
+
+5. **Автоматический запуск по расписанию (crontab):**
+   ```bash
+   crontab -e
+   ```
+   Добавьте строку:
+   ```crontab
+   42 6,13,18,20,22 * * *  cd ~/server/animevost-downloader && docker-compose up
+   ```
+
+### Вариант 2: Ручное использование (Windows)
+
+1. **Установите yt-dlp** (например, в `C:\bin\yt-dlp.exe`)
+
+2. **Скопируйте плагин:**
+   - Создайте папку `C:\bin\ytdlp_plugins`
+   - Скопируйте содержимое `ytdlp_plugins\animevost\yt_dlp_plugins\extractor` в `C:\bin\ytdlp_plugins\extractor`
+
+3. **Используйте скрипт `download.cmd`:**
+   ```cmd
+   download.cmd                    # Скачать из download.list
+   download.cmd URL                # Скачать конкретный URL
+   download.cmd URL номер_эпизода # Скачать с определенного эпизода
+   ```
+
+### Вариант 3: Ручное использование (Linux/Mac)
+
+1. **Установите yt-dlp:**
+   ```bash
+   pip install --upgrade yt-dlp
+   ```
+
+2. **Скопируйте плагин:**
+   ```bash
+   mkdir -p ~/.local/share/yt-dlp/plugins
+   cp -r yt-dlp/ytdlp_plugins/animevost/yt_dlp_plugins/extractor ~/.local/share/yt-dlp/plugins/
+   ```
+
+3. **Используйте yt-dlp:**
+   ```bash
+   yt-dlp --download-archive history.list "https://animevost.org/tip/tv/179-one-piece44.html"
+   ```
+
+## Развертывание через Ansible
+
+Для автоматического развертывания на сервере используйте `deployment.yml`:
+
+```bash
+ansible-playbook deployment.yml
+```
+
+Playbook автоматически:
+- Установит Docker
+- Скопирует конфигурацию
+- Настроит cron для автоматического скачивания
+
+## Формат сохранения файлов
+
+Файлы сохраняются в следующем формате:
+```
+/downloads/[Название сериала]/[Название сериала] [Номер эпизода] [ID].mp4
+```
+
+Например:
+```
+/downloads/Ван Пис/Ван Пис 1 [2147419615].mp4
+```
+
+## Поддерживаемые домены
+
+- animevost.org
+- animevost.am
+- vost.pw (v*.vost.pw)
+
+## Примечания
+
+- Файл `history.list` обязателен для работы Docker Compose (даже если пустой), иначе будет создана директория вместо файла
+- Плагин автоматически пропускает уже скачанные эпизоды благодаря `--download-archive`
+
