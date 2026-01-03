@@ -3,6 +3,8 @@
 from yt_dlp.extractor.common import InfoExtractor
 import json
 import re
+import os
+import glob
 from urllib.parse import urlparse
 
 from yt_dlp.utils import (
@@ -69,6 +71,7 @@ class AnimeVostShowsIE(InfoExtractor):
         _SHOWS_API_URL = '/frame5.php?play='
 
         video_id = self._match_id(url)
+        
         webpage = self._download_webpage(url, video_id, 'Downloading requested URL')
 
         title = self._html_search_regex(r'<h1>\s*(.+?)\s*</h1>', webpage, 'title') or \
@@ -77,9 +80,109 @@ class AnimeVostShowsIE(InfoExtractor):
         title = title[:title.find('/')]  # beautify
         title = title.strip()
 
-        release_year = self._html_search_regex(r'<p><strong>Год выхода: </strong>(\d+?)</p>', webpage, 'release_year', fatal=False)
-        # (playlist_count, duration) = self._html_search_regex(r'<p><strong>Количество серий: </strong>(\d+?) \((\d+?) мин.\)</p>', webpage, 'playlist_count', fatal=False)
+        # Extract year
+        release_year = self._html_search_regex(
+            r'<p><strong>Год выхода:\s*</strong>(\d+?)</p>', 
+            webpage, 'release_year', fatal=False
+        )
+        
+        # Extract type
+        anime_type = self._html_search_regex(
+            r'<p><strong>Тип:\s*</strong>([^<]+?)</p>', 
+            webpage, 'anime_type', fatal=False
+        )
+        if anime_type:
+            anime_type = anime_type.strip()
+        
+        # Extract series count
+        series_count_str = self._html_search_regex(
+            r'<p><strong>Количество серий:\s*</strong>([^<]+?)</p>', 
+            webpage, 'series_count', fatal=False
+        )
         playlist_count = 0
+        if series_count_str:
+            # Extract number from strings like "12+", "12", "1-13 из 13"
+            series_match = re.search(r'(\d+)', series_count_str)
+            if series_match:
+                playlist_count = int_or_none(series_match.group(1))
+        
+        # Extract genres
+        genres_str = self._html_search_regex(
+            r'<p><strong>Жанр:\s*</strong>([^<]+?)</p>', 
+            webpage, 'genres', fatal=False
+        )
+        genres = []
+        if genres_str:
+            genres = [g.strip() for g in genres_str.split(',') if g.strip()]
+        
+        # Extract director/author
+        director = self._html_search_regex(
+            r'<p\s*><strong>Режиссёр:\s*</strong><span[^>]*><a[^>]*>([^<]+?)</a></span></p>', 
+            webpage, 'director', fatal=False
+        )
+        if not director:
+            # Fallback: try without link
+            director = self._html_search_regex(
+                r'<p\s*><strong>Режиссёр:\s*</strong>([^<]+?)</p>', 
+                webpage, 'director', fatal=False
+            )
+        if director:
+            director = director.strip()
+        
+        # Extract description
+        description = self._html_search_regex(
+            r'<p><strong>Описание:\s*</strong><span[^>]*itemprop="description"[^>]*>(.+?)</span>', 
+            webpage, 'description', fatal=False, flags=re.DOTALL
+        )
+        if not description:
+            # Fallback: try without itemprop, but with span
+            description = self._html_search_regex(
+                r'<p><strong>Описание:\s*</strong><span[^>]*>(.+?)</span>', 
+                webpage, 'description', fatal=False, flags=re.DOTALL
+            )
+        if not description:
+            # Fallback: try without span
+            description = self._html_search_regex(
+                r'<p><strong>Описание:\s*</strong>([^<]+(?:<[^>]+>[^<]*</[^>]+>)*[^<]+?)</p>', 
+                webpage, 'description', fatal=False, flags=re.DOTALL
+            )
+        if description:
+            # Clean HTML tags from description, but preserve line breaks
+            description = description.replace('<br>', '\n').replace('<br />', '\n').replace('<br/>', '\n')
+            description = re.sub(r'<[^>]+>', '', description)
+            description = re.sub(r'\n\s*\n+', '\n\n', description)  # Normalize multiple newlines
+            description = description.strip()
+        else:
+            description = title
+
+        # Extract thumbnail
+        thumbnail = self._og_search_thumbnail(webpage, default=None)
+        if not thumbnail:
+            # Fallback: try to extract from img tag with class imgRadius
+            # Match img tag that has class="imgRadius" and extract src attribute
+            thumbnail = self._html_search_regex(
+                r'<img[^>]*class=["\']imgRadius["\'][^>]*src=["\']([^"\']+)["\']', 
+                webpage, 'thumbnail', fatal=False
+            )
+        if not thumbnail:
+            # Another fallback: try to extract any img tag with class imgRadius (more flexible)
+            thumbnail_match = re.search(
+                r'<img[^>]*class=["\']imgRadius["\'][^>]*>', 
+                webpage, re.IGNORECASE
+            )
+            if thumbnail_match:
+                img_tag = thumbnail_match.group(0)
+                src_match = re.search(r'src=["\']([^"\']+)["\']', img_tag)
+                if src_match:
+                    thumbnail = src_match.group(1)
+        if thumbnail:
+            # Remove query parameters from thumbnail URL (like ?v2)
+            thumbnail = thumbnail.split('?')[0]
+            # Convert relative URL to absolute
+            if thumbnail.startswith('/'):
+                thumbnail = _BASE_URL + thumbnail
+            elif not thumbnail.startswith('http'):
+                thumbnail = _BASE_URL + '/' + thumbnail
 
         season = None
         season_number = 0
@@ -90,16 +193,10 @@ class AnimeVostShowsIE(InfoExtractor):
             season_number = self.get_season_number(season)
             title = title.replace(season_re[0], '').strip()
 
-        # description = self._html_search_meta(
-        #     ['og:description', 'description', 'twitter:description'],
-        #     webpage, 'description', default=None)
-
         if len(title) > 90:
             print('Title too long and would be trimmed: ', title)
             title = title[:90]
             title = title[:title.rfind(' ')]
-        
-        description = title
 
         episodes_json = self._search_regex(r'var data = \s*?(.*?);', webpage, 'data')
         episodes = json.loads(episodes_json.replace(',}', '}'))
@@ -143,13 +240,26 @@ class AnimeVostShowsIE(InfoExtractor):
         res = {
             'id': video_id,
             'title': title,
-            # 'title': '%s - %s' % (series, title) if series and title else title,
             'description': description,
             'url': url,
             'entries': entries,
             'playlist_count': playlist_count,
             '_type': 'playlist',
         }
+        
+        # Add extracted metadata
+        if release_year:
+            res['release_year'] = int_or_none(release_year)
+        if anime_type:
+            res['type'] = anime_type
+        if genres:
+            res['genres'] = genres
+        if director:
+            res['director'] = director
+            res['creator'] = director  # Also add as creator for compatibility
+        if thumbnail:
+            res['thumbnail'] = thumbnail
+        
         return res
 
 
