@@ -12,6 +12,7 @@ from yt_dlp.utils import (
     qualities,
 )
 
+# Loads episodes list
 class AnimeVostShowsIE(InfoExtractor):
     # _VALID_URL = r'https?://(?:www\.)?animevost\.(org|am)/tip/.*/(?P<id>\d+)[-\w+][^/]*'
     _VALID_URL = r'https?://(?:www\.)?(animevost\.org|animevost\.am|v\d+\.vost\.pw)/tip/.*/(?P<id>\d+)[-\w+][^/]*'
@@ -262,7 +263,7 @@ class AnimeVostShowsIE(InfoExtractor):
         
         return res
 
-
+# Matches episode
 class AnimeVostIE(InfoExtractor):
     IE_NAME = 'animevost:cdn'
     IE_DESC = 'animevost.org CDN'

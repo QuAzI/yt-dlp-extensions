@@ -1,0 +1,9 @@
+[project]
+name = "yt-dlp-anistar"
+version = "0.1.0"
+description = "Anistar extractor plugin for yt-dlp"
+dependencies = ["yt-dlp"]
+license = { text = "MIT" }
+
+[project.entry-points."yt_dlp.plugins"]
+anistar = "yt_dlp_plugins.anistar"
