@@ -3,7 +3,8 @@ services:
     container_name: downloader
     build: yt-dlp
     volumes:
-      - /media/media/anime:/downloads
+      - ./downloads:/downloads
       - ./download.list:/app/download.list
       - ./history.list:/app/history.list
+      - ./yt-dlp-animevost/yt_dlp_plugins/animevost:/etc/yt-dlp/plugins/animevost/yt_dlp_plugins/extractor
     command: "--batch-file download.list -I -24:"

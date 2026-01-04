@@ -14,7 +14,7 @@
 - Скачивание отдельных эпизодов
 - Автоматическое определение сезонов
 - Поддержка качества 480p и 720p
-- Сохранение метаданных (название сериала, номер эпизода, год выпуска)
+- Сохранение метаданных: название сериала, номер эпизода, год выпуска, тип, жанры, режиссёр, описание, миниатюра
 
 ## Структура проекта
 
@@ -22,13 +22,13 @@
 yt-dlp-extensions/
 ├── yt-dlp/                          # Docker-контейнер и конфигурация
 │   ├── Dockerfile                   # Образ с yt-dlp и плагином
-│   ├── yt-dlp.conf                  # Конфигурация yt-dlp
-│   └── ytdlp_plugins/               # Плагины
+│   └── yt-dlp.conf                  # Конфигурация yt-dlp
+├── yt-dlp-animevost/                # Плагин для установки через pip
+│   ├── pyproject.toml               # Конфигурация пакета
+│   └── yt_dlp_plugins/
 │       └── animevost/
-│           └── yt_dlp_plugins/
-│               └── extractor/
-│                   ├── __init__.py
-│                   └── animevost.py # Основной код плагина
+│           ├── __init__.py
+│           └── extractor.py         # Основной код плагина
 ├── docker-compose.yml               # Docker Compose конфигурация
 ├── deployment.yml                   # Ansible playbook для развертывания
 ├── download.cmd                     # Скрипт для ручного скачивания (Windows)
@@ -37,7 +37,17 @@ yt-dlp-extensions/
 
 ## Установка и использование
 
-### Вариант 1: Docker Compose (рекомендуется)
+### Установка через pip (рекомендуется)
+
+Самый простой способ установки - через pip. Плагин будет автоматически зарегистрирован и готов к использованию:
+
+```shell
+python -m pip install "yt-dlp-animevost @ git+https://github.com/QuAzI/yt-dlp-extensions.git#subdirectory=yt-dlp-animevost"
+```
+
+После установки просто используйте yt-dlp как обычно - плагин будет автоматически загружен для URL animevost.org.
+
+### Установка через Docker Compose
 
 1. **Создайте необходимые файлы:**
    ```bash
@@ -74,13 +84,13 @@ yt-dlp-extensions/
    42 6,13,18,20,22 * * *  cd ~/server/animevost-downloader && docker-compose up
    ```
 
-### Вариант 2: Ручное использование (Windows)
+### Ручной запуск (Windows)
 
 1. **Установите yt-dlp** (например, в `C:\bin\yt-dlp.exe`)
 
 2. **Скопируйте плагин:**
-   - Создайте папку `C:\bin\ytdlp_plugins`
-   - Скопируйте содержимое `ytdlp_plugins\animevost\yt_dlp_plugins\extractor` в `C:\bin\ytdlp_plugins\extractor`
+   - Создайте папку `C:\bin\ytdlp_plugins\extractor`
+   - Скопируйте файлы из `yt-dlp-animevost\yt_dlp_plugins\animevost` в `C:\bin\ytdlp_plugins\extractor`
 
 3. **Используйте скрипт `download.cmd`:**
    ```cmd
@@ -89,7 +99,7 @@ yt-dlp-extensions/
    download.cmd URL номер_эпизода # Скачать с определенного эпизода
    ```
 
-### Вариант 3: Ручное использование (Linux/Mac)
+### Ручной запуск (Linux/Mac)
 
 1. **Установите yt-dlp:**
    ```bash
@@ -99,7 +109,7 @@ yt-dlp-extensions/
 2. **Скопируйте плагин:**
    ```bash
    mkdir -p ~/.local/share/yt-dlp/plugins
-   cp -r yt-dlp/ytdlp_plugins/animevost/yt_dlp_plugins/extractor ~/.local/share/yt-dlp/plugins/
+   cp -r yt-dlp-animevost/yt_dlp_plugins/animevost ~/.local/share/yt-dlp/plugins/
    ```
 
 3. **Используйте yt-dlp:**

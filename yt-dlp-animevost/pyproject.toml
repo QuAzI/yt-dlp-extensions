@@ -1,0 +1,8 @@
+[project]
+name = "yt-dlp-animevost"
+version = "0.1.0"
+description = "AnimeVost yt-dlp plugin"
+dependencies = ["yt-dlp"]
+
+[project.entry-points."yt_dlp.plugins"]
+animevost = "yt_dlp_plugins.animevost"

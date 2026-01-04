@@ -6,6 +6,8 @@ RUN pip install --upgrade yt-dlp
 
 WORKDIR /app
 COPY ./yt-dlp.conf ./
-COPY ./ytdlp_plugins /etc/yt-dlp/plugins
+
+#was yt-dlp/ytdlp_plugins/animevost/yt_dlp_plugins/extractor/*
+#COPY ./ytdlp_plugins /etc/yt-dlp/plugins
 
 ENTRYPOINT ["/usr/local/bin/yt-dlp"]

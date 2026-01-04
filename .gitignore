@@ -1,0 +1,6 @@
+/downloads/
+/download.list
+/history.list
+
+__pycache__
+*.pyc
