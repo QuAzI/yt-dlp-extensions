@@ -6,5 +6,5 @@ services:
       - ./downloads:/downloads
       - ./download.list:/app/download.list
       - ./history.list:/app/history.list
-      - ./yt-dlp-animevost/yt_dlp_plugins/animevost:/etc/yt-dlp/plugins/animevost/yt_dlp_plugins/extractor
+      - ./yt-dlp-animevost:/etc/yt-dlp/plugins/animevost:ro
     command: "--batch-file download.list -I -24:"

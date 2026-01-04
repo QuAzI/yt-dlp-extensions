@@ -26,9 +26,9 @@ yt-dlp-extensions/
 ├── yt-dlp-animevost/                # Плагин для установки через pip
 │   ├── pyproject.toml               # Конфигурация пакета
 │   └── yt_dlp_plugins/
-│       └── animevost/
-│           ├── __init__.py
-│           └── extractor.py         # Основной код плагина
+│       ├── __init__.py
+│       └── extractor/
+│           └── animevost.py         # Основной код плагина
 ├── docker-compose.yml               # Docker Compose конфигурация
 ├── deployment.yml                   # Ansible playbook для развертывания
 ├── download.cmd                     # Скрипт для ручного скачивания (Windows)
@@ -90,7 +90,7 @@ python -m pip install "yt-dlp-animevost @ git+https://github.com/QuAzI/yt-dlp-ex
 
 2. **Скопируйте плагин:**
    - Создайте папку `C:\bin\ytdlp_plugins\extractor`
-   - Скопируйте файлы из `yt-dlp-animevost\yt_dlp_plugins\animevost` в `C:\bin\ytdlp_plugins\extractor`
+   - Скопируйте файл `yt-dlp-animevost\yt_dlp_plugins\extractor\animevost.py` в `C:\bin\ytdlp_plugins\extractor\`
 
 3. **Используйте скрипт `download.cmd`:**
    ```cmd
@@ -108,8 +108,8 @@ python -m pip install "yt-dlp-animevost @ git+https://github.com/QuAzI/yt-dlp-ex
 
 2. **Скопируйте плагин:**
    ```bash
-   mkdir -p ~/.local/share/yt-dlp/plugins
-   cp -r yt-dlp-animevost/yt_dlp_plugins/animevost ~/.local/share/yt-dlp/plugins/
+   mkdir -p ~/.local/share/yt-dlp/plugins/extractor
+   cp yt-dlp-animevost/yt_dlp_plugins/extractor/animevost.py ~/.local/share/yt-dlp/plugins/extractor/
    ```
 
 3. **Используйте yt-dlp:**

@@ -1,8 +1,9 @@
 [project]
 name = "yt-dlp-animevost"
 version = "0.1.0"
-description = "AnimeVost yt-dlp plugin"
+description = "AnimeVost extractor plugin for yt-dlp"
 dependencies = ["yt-dlp"]
+license = { text = "MIT" }
 
 [project.entry-points."yt_dlp.plugins"]
 animevost = "yt_dlp_plugins.animevost"
