@@ -8,7 +8,7 @@ from urllib.parse import urlparse
 
 from yt_dlp.utils import (
     int_or_none,
-    qualities,
+    ExtractorError
 )
 
 # Loads episodes list
@@ -281,13 +281,17 @@ class AnimeVostIE(InfoExtractor):
     ]
 
     def _real_extract(self, url):
+        parsed_url = urlparse(url)
+        self._BASE_URL = f"{parsed_url.scheme}://{parsed_url.netloc}"
+
         video_id = self._match_id(url)
 
         webpage = self._download_webpage(
             url,
             None, 'Episode id %s' % video_id)
 
-        formats = self._parse_available_formats(webpage)
+        formats = self._parse_available_formats(url, webpage)
+        print('formats:', formats)
 
         self._check_formats(formats, video_id)
 
@@ -300,12 +304,20 @@ class AnimeVostIE(InfoExtractor):
             # 'episode': metadata.get('podcast_name'),
         }
 
-        # return {
-        #     'id': episode_id,
-        #     'url': self.get_cdn_url(url, episode_id),
-        # }
+    def _is_valid_url(self, url, video_id, item='video', headers={}):
+        url = self._proto_relative_url(url, scheme='http:')
+        # For now assume non HTTP(S) URLs always valid
+        if not url.startswith(('http://', 'https://')):
+            return True
+        try:
+            self._request_webpage(url, video_id, f'Checking {item} URL', headers=headers)
+            return True
+        except ExtractorError as e:
+            self.to_screen(
+                f'{video_id}: {item} URL is invalid, skipping: {e.cause!s} url={url}')
+            return False
 
-    def _parse_available_formats(self, webpage: str) -> list[dict]:
+    def _parse_available_formats(self, url: str, webpage: str) -> list[dict]:
         formats = []
         for format_id, height in (('sd', 480), ('hd', 720)):
             pattern = rf'href=["\']([^"\']+)["\'][^>]*>\s*{height}\s*[pр]\b'
@@ -317,31 +329,47 @@ class AnimeVostIE(InfoExtractor):
                     'format_id': format_id,
                     'quality': format_id,
                     'height': height,
-                    'ext': 'mp4'
+                    'ext': 'mp4',
+                    'http_headers': {
+                        'Referer': self._BASE_URL,
+                    }
                 })
 
-        if not formats:
-            file_list_match = re.search(
-                r'["\']file["\']\s*:\s*["\']([^"\']+)["\']',
-                webpage)
-            file_list = file_list_match.group(1) if file_list_match else None
-            if file_list:
-                for match in re.finditer(r'\[(?P<label>[^\]]+)\](?P<url>https?://[^, ]+)', file_list):
-                    label = match.group('label')
-                    format_url = match.group('url')
-                    height_match = re.search(r'(\d{3,4})\s*[pр]', label)
-                    height = int(height_match.group(1)) if height_match else None
-                    format_id = str(height) if height else 'http'
+        # If no formats parsed, fallback mode
+        file_list_match = re.search(
+            r'["\']file["\']\s*:\s*["\']([^"\']+)["\']',
+            webpage)
+        file_list = file_list_match.group(1) if file_list_match else None
+        if file_list:
+            print('file_list:', file_list)
+            for match in re.finditer(r'\[(?P<label>[^\]]+)\](?P<urls>[^\[]*)', file_list):
+                label = match.group('label').strip()
+                urls_block = match.group('urls') or ''
+                urls = re.findall(r'https?://[^\s,]+', urls_block)
+                if not urls:
+                    continue
+
+                height_match = re.search(r'(\d{3,4})\s*[pр]', label)
+                height = int(height_match.group(1)) if height_match else None
+                format_id = str(height) if height else 'http'
+
+                for format_url in urls:
                     formats.append({
                         'url': format_url,
                         'format_id': format_id,
                         'quality': format_id,
                         'height': height,
-                        'ext': 'mp4'
+                        'ext': 'mp4',
+                        'http_headers': {
+                            'Referer': self._BASE_URL,
+                        }
                     })
-        return formats
 
-    # def get_cdn_url(self, target_url, episode_id):
+        formats_with_uniq_links = {one_format['url']: one_format for one_format in formats}
+
+        return list(formats_with_uniq_links.values())
+
+# def get_cdn_url(self, target_url, episode_id):
     #     response = self._download_webpage(
     #         target_url,
     #         None, 'Episode id %s' % episode_id)
