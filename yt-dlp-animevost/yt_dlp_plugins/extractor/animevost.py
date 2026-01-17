@@ -281,35 +281,6 @@ class AnimeVostIE(InfoExtractor):
         },
     ]
 
-    def _get_headers(self, referer=None):
-        headers = {}
-        http_headers = self.get_param('http_headers', {})
-        if http_headers:
-            headers.update(http_headers)
-        if 'User-Agent' not in headers:
-            headers['User-Agent'] = (
-                'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:142.0) '
-                'Gecko/20100101 Firefox/142.0'
-            )
-        if referer:
-            parsed_referer = urlparse(referer)
-            referer_root = f"{parsed_referer.scheme}://{parsed_referer.netloc}"
-            headers.setdefault('Referer', referer_root)
-        return headers
-
-    def _check_format_availability(self, url, video_id, referer=None):
-        if not url:
-            return False
-        headers = self._get_headers(referer=referer or url)
-        headers.setdefault('Range', 'bytes=0-0')
-        urlh = self._request_webpage(
-            url, video_id, note='Checking format availability',
-            headers=headers, fatal=False)
-        if not urlh:
-            return False
-        urlh.close()
-        return True
-
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
@@ -318,33 +289,20 @@ class AnimeVostIE(InfoExtractor):
             None, 'Episode id %s' % video_id)
 
         formats = []
-        quality = qualities(['sd', 'hd'])
-        episode_url_480p = self._search_regex(
-            r'href="?(.*?)">480p', webpage, 'data', fatal=False)
-        if self._check_format_availability(episode_url_480p, video_id, referer=url):
+        for format_id, height in (('sd', 480), ('hd', 720)):
+            pattern = rf'href="?(.*?)">{height}p'
+            url = self._search_regex(pattern, webpage, f'{height}p url', fatal=False)
             formats.append({
-                'url': episode_url_480p,
-                'quality': quality('sd'),
-                'ext': 'mp4',
-                'height': 480,
-            })
-        else:
-            self.report_warning('480p format is not available for this episode')
+                    'url': url,
+                    'format_id': format_id,
+                    'quality': format_id,
+                    'height': height,
+                    'ext': 'mp4'
+                })
 
-        episode_url_720p = self._search_regex(
-            r'href="?(.*?)">720p', webpage, 'data', fatal=False)
-        if self._check_format_availability(episode_url_720p, video_id, referer=url):
-            formats.append({
-                'url': episode_url_720p,
-                'quality': quality('hd'),
-                'ext': 'mp4',
-                'height': 720,
-            })
-        else:
-            self.report_warning('720p format is not available for this episode')
+        self._check_formats(formats, video_id)
 
-        if not formats:
-            self.raise_no_formats('No available formats found', expected=True)
+        print('formats:', formats)
         return {
             'id': video_id,
             'formats': formats,
