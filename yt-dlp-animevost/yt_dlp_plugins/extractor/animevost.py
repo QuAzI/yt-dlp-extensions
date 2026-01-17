@@ -1,10 +1,9 @@
 # coding: utf-8
+from typing import Any
 
 from yt_dlp.extractor.common import InfoExtractor
 import json
 import re
-import os
-import glob
 from urllib.parse import urlparse
 
 from yt_dlp.utils import (
@@ -288,37 +287,7 @@ class AnimeVostIE(InfoExtractor):
             url,
             None, 'Episode id %s' % video_id)
 
-        formats = []
-        for format_id, height in (('sd', 480), ('hd', 720)):
-            pattern = rf'href=["\']([^"\']+)["\'][^>]*>\s*{height}\s*[pр]\b'
-            url = self._search_regex(pattern, webpage, f'{height}p url', fatal=False)
-            if url:
-                formats.append({
-                    'url': url,
-                    'format_id': format_id,
-                    'quality': format_id,
-                    'height': height,
-                    'ext': 'mp4'
-                })
-
-        if not formats:
-            file_list = self._search_regex(
-                r'["\']file["\']\s*:\s*["\']([^"\']+)["\']',
-                webpage, 'file list', fatal=False)
-            if file_list:
-                for match in re.finditer(r'\[(?P<label>[^\]]+)\](?P<url>https?://[^, ]+)', file_list):
-                    label = match.group('label')
-                    format_url = match.group('url')
-                    height_match = re.search(r'(\d{3,4})\s*[pр]', label)
-                    height = int_or_none(height_match.group(1)) if height_match else None
-                    format_id = str(height) if height else 'http'
-                    formats.append({
-                        'url': format_url,
-                        'format_id': format_id,
-                        'quality': format_id,
-                        'height': height,
-                        'ext': 'mp4'
-                    })
+        formats = self._parse_available_formats(webpage)
 
         self._check_formats(formats, video_id)
 
@@ -335,6 +304,42 @@ class AnimeVostIE(InfoExtractor):
         #     'id': episode_id,
         #     'url': self.get_cdn_url(url, episode_id),
         # }
+
+    def _parse_available_formats(self, webpage: str) -> list[dict]:
+        formats = []
+        for format_id, height in (('sd', 480), ('hd', 720)):
+            pattern = rf'href=["\']([^"\']+)["\'][^>]*>\s*{height}\s*[pр]\b'
+            match = re.search(pattern, webpage)
+            url = match.group(1) if match else None
+            if url:
+                formats.append({
+                    'url': url,
+                    'format_id': format_id,
+                    'quality': format_id,
+                    'height': height,
+                    'ext': 'mp4'
+                })
+
+        if not formats:
+            file_list_match = re.search(
+                r'["\']file["\']\s*:\s*["\']([^"\']+)["\']',
+                webpage)
+            file_list = file_list_match.group(1) if file_list_match else None
+            if file_list:
+                for match in re.finditer(r'\[(?P<label>[^\]]+)\](?P<url>https?://[^, ]+)', file_list):
+                    label = match.group('label')
+                    format_url = match.group('url')
+                    height_match = re.search(r'(\d{3,4})\s*[pр]', label)
+                    height = int(height_match.group(1)) if height_match else None
+                    format_id = str(height) if height else 'http'
+                    formats.append({
+                        'url': format_url,
+                        'format_id': format_id,
+                        'quality': format_id,
+                        'height': height,
+                        'ext': 'mp4'
+                    })
+        return formats
 
     # def get_cdn_url(self, target_url, episode_id):
     #     response = self._download_webpage(
