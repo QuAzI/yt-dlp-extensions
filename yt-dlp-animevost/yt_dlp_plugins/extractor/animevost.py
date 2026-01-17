@@ -290,9 +290,10 @@ class AnimeVostIE(InfoExtractor):
 
         formats = []
         for format_id, height in (('sd', 480), ('hd', 720)):
-            pattern = rf'href="?(.*?)">{height}p'
+            pattern = rf'href=["\']([^"\']+)["\'][^>]*>\s*{height}\s*[pр]\b'
             url = self._search_regex(pattern, webpage, f'{height}p url', fatal=False)
-            formats.append({
+            if url:
+                formats.append({
                     'url': url,
                     'format_id': format_id,
                     'quality': format_id,
