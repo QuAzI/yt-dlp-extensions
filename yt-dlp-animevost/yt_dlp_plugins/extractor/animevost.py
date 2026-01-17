@@ -301,6 +301,25 @@ class AnimeVostIE(InfoExtractor):
                     'ext': 'mp4'
                 })
 
+        if not formats:
+            file_list = self._search_regex(
+                r'["\']file["\']\s*:\s*["\']([^"\']+)["\']',
+                webpage, 'file list', fatal=False)
+            if file_list:
+                for match in re.finditer(r'\[(?P<label>[^\]]+)\](?P<url>https?://[^, ]+)', file_list):
+                    label = match.group('label')
+                    format_url = match.group('url')
+                    height_match = re.search(r'(\d{3,4})\s*[pр]', label)
+                    height = int_or_none(height_match.group(1)) if height_match else None
+                    format_id = str(height) if height else 'http'
+                    formats.append({
+                        'url': format_url,
+                        'format_id': format_id,
+                        'quality': format_id,
+                        'height': height,
+                        'ext': 'mp4'
+                    })
+
         self._check_formats(formats, video_id)
 
         print('formats:', formats)
